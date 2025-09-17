@@ -14,6 +14,8 @@ Matrix createMatrix(int row, int col, bool fillRandom);
 void freeMatrix(Matrix *m);
 
 void MatMul(Matrix *m1, Matrix *m2, Matrix *out, bool useAccelerate);
+void MatMulWithTranspose(Matrix *m1, Matrix *m2, Matrix *out, 
+                         bool transA, bool transB, bool useAccelerate);
 void Add(Matrix *m1, Matrix *m2, Matrix *out);
 void elemMul(Matrix *m1, Matrix *m2, Matrix *out);
 void scalarMul(Matrix *m, float scalar, Matrix *out);

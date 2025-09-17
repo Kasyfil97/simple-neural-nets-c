@@ -13,8 +13,6 @@ LinearLayer createLinearLayer(int in, int out, bool bias){
 }
 
 void LinearForward(LinearLayer *layer, Matrix *X, Matrix *out){
-    // shapeMatrix(X);
-    // shapeMatrix(&layer->W);
 
     MatMul(X, &layer->W, out, true);
     for(int i=0;i<X->row;i++){
@@ -24,26 +22,23 @@ void LinearForward(LinearLayer *layer, Matrix *X, Matrix *out){
     }
 }
 
-void freeLinearLayer(LinearLayer layer) {
-    freeMatrix(&layer.W);
-    freeMatrix(&layer.b);
-}
+// void freeLinearLayer(LinearLayer *layer) {
+//     freeMatrix(&layer->W);
+//     freeMatrix(&layer->b);
+// }
 
 void LinearBackward(LinearLayer *layer, Matrix *X, Matrix *dZ, Matrix *dX){
-    Matrix Xt = createMatrix(X->col, X->row, 0);
-    Transpose(X, &Xt);
-    layer->dW = createMatrix(Xt.row, dZ->col, 0);
-    MatMul(&Xt, dZ, &layer->dW, true);
-    freeMatrix(&Xt);
 
+    // dW = X^T * dZ
+    layer->dW = createMatrix(X->col, dZ->col, 0);
+    MatMulWithTranspose(X, dZ, &layer->dW, true, false, true);
+
+    // db = sum(dZ, axis=0)
     layer->db = createMatrix(1, dZ->col, 0);
     Sum(dZ, 0, &layer->db);
 
-    Matrix Wt = createMatrix(layer->W.col, layer->W.row, 0);
-
-    Transpose(&layer->W, &Wt);
-    MatMul(dZ, &Wt, dX, true);
-    freeMatrix(&Wt);
+    // dX = dZ * W^T
+    MatMulWithTranspose(dZ, &layer->W, dX, false, true, true);
 }
 
 void ReLU(Matrix *m, Matrix *out){
@@ -58,51 +53,69 @@ void ReLUBackward(Matrix *dY, Matrix *X, Matrix *dX){
     dX->col = dY->col;
 }
 
-void Softmax(Matrix *m, Matrix *out, int axis){
-    if(axis != 0 && axis != 1){
-        printf("Softmax error: axis must be 0 or 1\n");
+void Softmax(Matrix *m, Matrix *out, bool axis_col){
+    int total = m->row * m->col;
+
+    if(axis_col){ // normalize per kolom
+        for(int i=0; i<m->row; i++){
+                // cari max
+            float maxVal = -INFINITY;
+            for(int idx=0; idx<total; idx++){
+                if(idx / m->col == i){  // ambil elemen di baris i
+                    float v = m->data[idx];
+                    if(v > maxVal) maxVal = v;
+                }
+            }
+            // hitung sum exp
+            float sumExp = 0.0f;
+            for(int idx=0; idx<total; idx++){
+                if(idx / m->col == i){
+                    sumExp += expf(m->data[idx] - maxVal);
+                }
+            }
+            // assign hasil
+            for(int idx=0; idx<total; idx++){
+                if(idx / m->col == i){
+                    out->data[idx] = expf(m->data[idx] - maxVal) / sumExp;
+                }
+            }
+        }
+    }
+    else{ // normalize per baris
+        for(int j=0; j<m->col; j++){
+            // cari max
+            float maxVal = -INFINITY;
+            for(int idx=0; idx<total; idx++){
+                if(idx % m->col == j){  // ambil elemen di kolom j
+                    float v = m->data[idx];
+                    if(v > maxVal) maxVal = v;
+                }
+            }
+            // hitung sum exp
+            float sumExp = 0.0f;
+            for(int idx=0; idx<total; idx++){
+                if(idx % m->col == j){
+                    sumExp += expf(m->data[idx] - maxVal);
+                }
+            }
+            // assign hasil
+            for(int idx=0; idx<total; idx++){
+                if(idx % m->col == j){
+                    out->data[idx] = expf(m->data[idx] - maxVal) / sumExp;
+                }
+            }
+        }
     }
 
-    if(axis == 0){ // normalize per kolom
-        for(int j=0; j<m->col; j++){
-            float maxVal = -INFINITY;
-            for(int k=0; k<m->row; k++){
-                if(m->data[k*m->col+j] > maxVal)
-                    maxVal = m->data[k*m->col+j];
-            }
-            float sumExp = 0.0f;
-            for(int i=0; i<m->row; i++){
-                sumExp += expf(m->data[i*m->col+j] - maxVal);
-            }
-            for(int i=0; i<m->row; i++){
-                out->data[i*m->col+j] = expf(m->data[i*m->col+j] - maxVal) / sumExp;
-            }
-        }
-    }
-    else if(axis == 1){ // normalize per baris
-        for(int i=0;i<m->row;i++){
-            float max=-INFINITY;
-            for(int j=0;j<m->col;j++){
-                float v=m->data[i*m->col+j];
-                if(v>max) max=v;
-            }
-            float sum=0;
-            for(int j=0;j<m->col;j++){
-                sum += expf(m->data[i*m->col+j]-max);
-            }
-            for(int j=0;j<m->col;j++){
-                out->data[i*m->col+j] = expf(m->data[i*m->col+j]-max)/sum;
-            }
-        }
-    }
-    else{
-        printf("Softmax: axis should be 0 for row or 1 for col");
-    }
     out->col = m->col;
 }
 
 
 float CrossEntropyLoss(Matrix *pred, Matrix *label){
+    if(pred->row != label->row){
+        fprintf(stderr, "crossentropy loss: the prediction row (%d) and label row (%d) is not same size", pred->row, label->row);
+        exit(1);
+    }
     float loss=0;
     for(int i=0;i<pred->row;i++){
         int c=(int)label->data[i];

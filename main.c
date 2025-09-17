@@ -9,7 +9,7 @@
 int main(){
     srand(time(0));
 
-    int in_row=10;
+    int in_row=100;
     int INPUT_DIM=512;
     int H1=1028, H2=128, OUT=3;
     int EPOCHS=100;
@@ -26,7 +26,7 @@ int main(){
     }
     fclose(fp);
 
-    Model model=createModel();
+    Model model=createModel(6);
     addLayer(&model,LAYER_LINEAR,INPUT_DIM,H1);
     addLayer(&model,LAYER_RELU,0,0);
     addLayer(&model,LAYER_LINEAR,H1,H2);

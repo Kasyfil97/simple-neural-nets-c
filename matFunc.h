@@ -16,7 +16,7 @@ void Sum(Matrix *m, int axis, Matrix *out);
 void ReLU(Matrix *m, Matrix *out);
 void ReLUBackward(Matrix *dY, Matrix *X, Matrix *dX);
 
-void Softmax(Matrix *m, Matrix *out, int axis);
+void Softmax(Matrix *m, Matrix *out, bool axis_col);
 float CrossEntropyLoss(Matrix *pred, Matrix *label);
 void SoftmaxCrossEntropyBackward(Matrix *prob, Matrix *labels, Matrix *dZ);
 

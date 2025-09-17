@@ -4,16 +4,24 @@
 #include "model.h"
 #include "matOps.h"
 
-Model createModel(){
+Model createModel(int capacity){
     Model m;
-    m.layers=NULL;
+    m.layers=malloc(capacity * sizeof(Layer));
+    if (!m.layers) {
+        perror("malloc failed");
+        exit(1);
+    };
     m.num_layers=0;
     m.activations=NULL;
+    m.capacity = capacity;
     return m;
 }
 
 void addLayer(Model *model, LayerType type, int in_dim, int out_dim){
-    model->layers=realloc(model->layers,(model->num_layers+1)*sizeof(Layer));
+    if (model->num_layers >= model->capacity) {
+        fprintf(stderr, "Error: exceeded preallocated layer capacity\n");
+        exit(1);
+    }
     Layer *L=&model->layers[model->num_layers];
 
     L->type=type;
@@ -38,7 +46,7 @@ void modelForward(Model *model, Matrix *X, Matrix *buf1, Matrix *buf2, Matrix **
 
     for(int i=0;i<model->num_layers;i++){
         Layer L=model->layers[i];
-        // pilih buffer tujuan
+        // buffer tujuan
         if(cur==buf1) out=buf2; else out=buf1;
 
         if(L.type==LAYER_LINEAR){
@@ -49,9 +57,9 @@ void modelForward(Model *model, Matrix *X, Matrix *buf1, Matrix *buf2, Matrix **
             ReLU(cur,out);
         }
         else if(L.type==LAYER_SOFTMAX){
-            Softmax(cur,out,1);
+            Softmax(cur,out,true);
         }
-        model->activations[i]=*out; // copy struct (pointer data tetap sama)
+        model->activations[i]=*out; // copy struct
 
         // ganti buffer
         swap=cur;
@@ -120,10 +128,10 @@ void saveModel(Model *model,const char *filename){
     fclose(fp);
 }
 
-Model loadModel(const char *filename){
+Model loadModel(const char *filename, int num_layers){
     FILE *fp=fopen(filename,"rb");
     if(!fp){perror("loadModel");exit(1);}
-    Model model=createModel();
+    Model model=createModel(num_layers);
     int num;
     fread(&num,sizeof(int),1,fp);
 
