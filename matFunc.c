@@ -7,17 +7,26 @@
 
 LinearLayer createLinearLayer(int in, int out, bool bias){
     LinearLayer l;
-    l.W = createMatrix(in, out, true);
-    l.b = createMatrix(1, out, bias);
+    l.W = malloc(sizeof(Matrix));
+    l.b = malloc(sizeof(Matrix));
+    l.dW = malloc(sizeof(Matrix));
+    l.db = malloc(sizeof(Matrix));
+
+
+    *l.W = createMatrix(in, out, true);
+    *l.b = createMatrix(1, out, bias);
+
+    *l.dW = createMatrix(in, out, 0);
+    *l.db = createMatrix(1, out, 0);
+
     return l;
 }
 
 void LinearForward(LinearLayer *layer, Matrix *X, Matrix *out){
-
-    MatMul(X, &layer->W, out, true);
+    MatMul(X, layer->W, out, true);
     for(int i=0;i<X->row;i++){
         for(int j=0;j<out->col;j++){
-            out->data[i*out->col+j] += layer->b.data[j];
+            out->data[i*out->col+j] += layer->b->data[j];
         }
     }
 }
@@ -30,15 +39,13 @@ void LinearForward(LinearLayer *layer, Matrix *X, Matrix *out){
 void LinearBackward(LinearLayer *layer, Matrix *X, Matrix *dZ, Matrix *dX){
 
     // dW = X^T * dZ
-    layer->dW = createMatrix(X->col, dZ->col, 0);
-    MatMulWithTranspose(X, dZ, &layer->dW, true, false, true);
+    MatMulWithTranspose(X, dZ, layer->dW, true, false, true);
 
     // db = sum(dZ, axis=0)
-    layer->db = createMatrix(1, dZ->col, 0);
-    Sum(dZ, 0, &layer->db);
+    Sum(dZ, 0, layer->db);
 
     // dX = dZ * W^T
-    MatMulWithTranspose(dZ, &layer->W, dX, false, true, true);
+    MatMulWithTranspose(dZ, layer->W, dX, false, true, true);
 }
 
 void ReLU(Matrix *m, Matrix *out){
@@ -110,7 +117,6 @@ void Softmax(Matrix *m, Matrix *out, bool axis_col){
     out->col = m->col;
 }
 
-
 float CrossEntropyLoss(Matrix *pred, Matrix *label){
     if(pred->row != label->row){
         fprintf(stderr, "crossentropy loss: the prediction row (%d) and label row (%d) is not same size", pred->row, label->row);
@@ -119,18 +125,24 @@ float CrossEntropyLoss(Matrix *pred, Matrix *label){
     float loss=0;
     for(int i=0;i<pred->row;i++){
         int c=(int)label->data[i];
-        loss += -log(pred->data[i*pred->col+c]+1e-15);
+        loss += -log(pred->data[i*pred->col+c]+1e-7);
     }
     return loss/pred->row;
 }
 
 void SoftmaxCrossEntropyBackward(Matrix *prob, Matrix *labels, Matrix *dZ){
-    for(int i=0;i<prob->row;i++){
-        int c=(int)labels->data[i];
-        for(int j=0;j<prob->col;j++)
-            dZ->data[i*prob->col+j]=prob->data[i*prob->col+j];
-        dZ->data[i*prob->col+c]-=1.0f;
+    int total = prob->row * prob->col;
+
+    for(int idx=0; idx<total; idx++){
+        dZ->data[idx] = prob->data[idx];
     }
+
+    for(int i=0; i<prob->row; i++){
+        int c = (int)labels->data[i];
+        int idx = i * prob->col + c;  // bisa juga ROW/COL macro
+        dZ->data[idx] -= 1.0f;
+    }
+
     dZ->col = prob->col;
 }
 

@@ -97,12 +97,10 @@ void modelUpdate(Model *model,float lr){
         Layer L=model->layers[i];
         if(L.type==LAYER_LINEAR){
             LinearLayer *lin=(LinearLayer*)L.layer;
-            for(int j=0;j<lin->W.row*lin->W.col;j++)
-                lin->W.data[j]-=lr*lin->dW.data[j];
-            for(int j=0;j<lin->b.row*lin->b.col;j++)
-                lin->b.data[j]-=lr*lin->db.data[j];
-            freeMatrix(&lin->dW);
-            freeMatrix(&lin->db);
+            for(int j=0;j<lin->W->row*lin->W->col;j++)
+                lin->W->data[j]-=lr*lin->dW->data[j];
+            for(int j=0;j<lin->b->row*lin->b->col;j++)
+                lin->b->data[j]-=lr*lin->db->data[j];
         }
     }
 }
@@ -117,12 +115,12 @@ void saveModel(Model *model,const char *filename){
         fwrite(&L.type,sizeof(LayerType),1,fp);
         if(L.type==LAYER_LINEAR){
             LinearLayer *lin=(LinearLayer*)L.layer;
-            fwrite(&lin->W.row,sizeof(int),1,fp);
-            fwrite(&lin->W.col,sizeof(int),1,fp);
-            fwrite(lin->W.data,sizeof(float),lin->W.row*lin->W.col,fp);
-            fwrite(&lin->b.row,sizeof(int),1,fp);
-            fwrite(&lin->b.col,sizeof(int),1,fp);
-            fwrite(lin->b.data,sizeof(float),lin->b.row*lin->b.col,fp);
+            fwrite(&lin->W->row,sizeof(int),1,fp);
+            fwrite(&lin->W->col,sizeof(int),1,fp);
+            fwrite(lin->W->data,sizeof(float),lin->W->row*lin->W->col,fp);
+            fwrite(&lin->b->row,sizeof(int),1,fp);
+            fwrite(&lin->b->col,sizeof(int),1,fp);
+            fwrite(lin->b->data,sizeof(float),lin->b->row*lin->b->col,fp);
         }
     }
     fclose(fp);
@@ -142,12 +140,14 @@ Model loadModel(const char *filename, int num_layers){
             int Wr,Wc,Br,Bc;
             fread(&Wr,sizeof(int),1,fp);
             fread(&Wc,sizeof(int),1,fp);
-            Matrix W=createMatrix(Wr,Wc,0);
-            fread(W.data,sizeof(float),Wr*Wc,fp);
+            Matrix *W=malloc(sizeof(Matrix));
+            *W=createMatrix(Wr,Wc,0);
+            fread(W->data,sizeof(float),Wr*Wc,fp);
             fread(&Br,sizeof(int),1,fp);
             fread(&Bc,sizeof(int),1,fp);
-            Matrix b=createMatrix(Br,Bc,0);
-            fread(b.data,sizeof(float),Br*Bc,fp);
+            Matrix *b=malloc(sizeof(Matrix));
+            *b=createMatrix(Br,Bc,0);
+            fread(b->data,sizeof(float),Br*Bc,fp);
             LinearLayer *lin=malloc(sizeof(LinearLayer));
             lin->W=W; lin->b=b;
             model.layers=realloc(model.layers,(model.num_layers+1)*sizeof(Layer));
@@ -169,8 +169,10 @@ void freeModel(Model *model){
     for(int i=0;i<model->num_layers;i++){
         if(model->layers[i].type==LAYER_LINEAR){
             LinearLayer *lin=(LinearLayer*)model->layers[i].layer;
-            freeMatrix(&lin->W);
-            freeMatrix(&lin->b);
+            freeMatrix(lin->W);
+            freeMatrix(lin->b);
+            freeMatrix(lin->dW);
+            freeMatrix(lin->db);
             free(lin);
         }
     }

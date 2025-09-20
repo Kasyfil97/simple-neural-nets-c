@@ -6,11 +6,11 @@
 
 int main() {
     // === Load model ===
-    Model model = loadModel("trained_model.bin");
+    Model model = loadModel("trained_model.bin", 8);
 
     // === Tentukan dimensi input dari model ===
     int INPUT_DIM = model.layers[0].type == LAYER_LINEAR ? 
-                    ((LinearLayer*)model.layers[0].layer)->W.row : 0;
+                    ((LinearLayer*)model.layers[0].layer)->W->row : 0;
     int batch = 5;  // jumlah sample untuk inference
 
     // === Load input ===
@@ -23,8 +23,8 @@ int main() {
     for (int i = 0; i < model.num_layers; i++) {
         if (model.layers[i].type == LAYER_LINEAR) {
             LinearLayer *lin = (LinearLayer*)model.layers[i].layer;
-            if (lin->W.col > max_dim) {
-                max_dim = lin->W.col;
+            if (lin->W->col > max_dim) {
+                max_dim = lin->W->col;
             }
         }
     }

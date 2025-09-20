@@ -7,13 +7,13 @@ typedef enum { LAYER_LINEAR, LAYER_RELU, LAYER_SOFTMAX } LayerType;
 
 typedef struct {
     LayerType type;  // jenis layer (LINEAR, RELU, SOFTMAX, dll)
-    void *layer;     // pointer ke data detail layer (misalnya LinearLayer)
+    void *layer;     // pointer ke data detail layer (seperti LinearLayer)
 } Layer;
 
 typedef struct {
     Layer *layers; // array dari semua layer dalam model
     int num_layers;
-    int capacity;
+    int capacity; // jumlah layer maksimum yang dapat ditampung
     Matrix *activations; // hasil keluaran tiap layer (untuk forward/backward)
 } Model;
 

@@ -11,8 +11,8 @@ int main(){
 
     int in_row=100;
     int INPUT_DIM=512;
-    int H1=1028, H2=128, OUT=3;
-    int EPOCHS=100;
+    int H1=1028, H2=256, H3=128, OUT=3;
+    int EPOCHS=50;
     float LR=0.00001f;
 
     Matrix X=createMatrix(in_row,INPUT_DIM, 1);
@@ -26,19 +26,21 @@ int main(){
     }
     fclose(fp);
 
-    Model model=createModel(6);
+    Model model=createModel(8);
     addLayer(&model,LAYER_LINEAR,INPUT_DIM,H1);
     addLayer(&model,LAYER_RELU,0,0);
     addLayer(&model,LAYER_LINEAR,H1,H2);
     addLayer(&model,LAYER_RELU,0,0);
-    addLayer(&model,LAYER_LINEAR,H2,OUT);
+    addLayer(&model,LAYER_LINEAR,H2,H3);
+    addLayer(&model, LAYER_RELU, 0,0);
+    addLayer(&model, LAYER_LINEAR, H3, OUT);
     addLayer(&model,LAYER_SOFTMAX,0,0);
 
     // buffer reuse
-    Matrix buf1f=createMatrix(in_row, H1>H2? (H1>OUT?H1:OUT):(H2>OUT?H2:OUT), 0);
+    Matrix buf1f=createMatrix(in_row, H1>H2? (H1>OUT?H1:OUT):(H2>H3?H2:(H3>OUT?H3:OUT)), 0);
     Matrix buf2f=createMatrix(in_row, buf1f.col, 0);
 
-    Matrix buf1b=createMatrix(in_row, H1>H2? (H1>OUT?H1:OUT):(H2>OUT?H2:OUT), 0);
+    Matrix buf1b=createMatrix(in_row, H1>H2? (H1>OUT?H1:OUT):(H2>H3?H2:(H3>OUT?H3:OUT)), 0);
     Matrix buf2b=createMatrix(in_row, buf1b.col, 0);
 
     for(int e=0;e<EPOCHS;e++){

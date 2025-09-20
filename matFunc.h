@@ -4,8 +4,8 @@
 #include "matOps.h"
 
 typedef struct {
-    Matrix W, b;
-    Matrix dW, db;
+    Matrix *W, *b;
+    Matrix *dW, *db;
 } LinearLayer;
 
 LinearLayer createLinearLayer(int in, int out, bool bias);
